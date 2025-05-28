@@ -60,6 +60,7 @@ def upload_file():
         # Clear previous process labels
         for label in process_labels:
             label.config(text="")
+            
 
         # Read and display processes
         processes = readfilelines(file_path)
@@ -71,6 +72,31 @@ def upload_file():
             )
 
         
+
+def upload_file2():
+    global list_process
+    file_path = filedialog.askopenfilename(
+        title="Selecciona un archivo de texto",
+        filetypes=[("Text files", "*.txt")]
+    )
+    if file_path:
+        uploaded_file_label.config(text=f"Archivo cargado: {os.path.basename(file_path)}")
+
+        # Clear previous process labels
+        for label in process_labels2:
+            label.config(text="")
+            
+
+        # Read and display processes
+        processes = readfilelines(file_path)
+        for i in range(min(3, len(processes))):
+            p = processes[i]
+            process_labels2[i].config(
+                text=f"PID: {p.pid}, BT: {p.bt}, AT: {p.at}, Priority: {p.priority}",
+                fg="black"
+            )
+    
+
 
 
 # Create the main window
@@ -109,17 +135,19 @@ notebook.add(tab2, text="Simulador de Mecanismos de Sincronización")
 
 # Add content to tabs
 tk.Label(tab1, text="Algoritmos de Calendarización", font=("Arial", 16)).pack(pady=20)
-upload_btn = tk.Button(tab1, text="Cargar Archivo .txt", command=upload_file)
+upload_btn = tk.Button(tab1, text="Cargar Archivo de procesos .txt", command=upload_file)
 upload_btn.pack(pady=10)
+
+process_labels = []
+for _ in range(3):
+    lb2 = tk.Label(tab1, text="", bg="white", font=("Courier", 12))
+    lb2.pack(pady=2)
+    process_labels.append(lb2)
 
 uploaded_file_label = tk.Label(tab1, text="", bg="white", fg="blue", wraplength=500)
 uploaded_file_label.pack(pady=5)
 
-process_labels = []
-for _ in range(3):
-    lbl = tk.Label(tab1, text="", bg="white", font=("Courier", 12))
-    lbl.pack(pady=2)
-    process_labels.append(lbl)
+
 
 
 selected_algorithms = {}
@@ -184,9 +212,7 @@ def start_simulation():
     for algo, var in selected_algorithms.items():
         if var.get():
             q = quantum_value.get() if algo == "Round Robin" else None
-            # Start a new thread for each simulation window
-            t = threading.Thread(target=open_simulation_window, args=(algo, q))
-            t.start()
+            open_simulation_window(algo, q)  
 
 start_button = tk.Button(
     tab1,
@@ -356,7 +382,7 @@ tk.Label(tab2, text="Mecanismos de Sincronización.", font=("Arial", 16)).pack(p
 
 
 
-loaded_resources = []
+loaded_resources = {}
 def upload_resources_file():
     global resources_file_path, loaded_resources
     file_path = filedialog.askopenfilename(
@@ -424,17 +450,159 @@ radio_mutex.pack(side=tk.LEFT)
 
      
 # Dentro de tu ventana o tab actual
-upload_btn_process = tk.Button(tab2, text="Cargar Archivo Procesos .txt", command=upload_file)
+upload_btn_process = tk.Button(tab2, text="Cargar Archivo Procesos .txt", command=upload_file2)
 upload_btn_process.pack(pady=5)
 
 uploaded_file_label = tk.Label(tab2, text="", bg="white", fg="blue", wraplength=500)
 uploaded_file_label.pack(pady=5)
 
-process_labels = [] 
+process_labels2 = []
 for _ in range(3):
     lb2 = tk.Label(tab2, text="", bg="white", font=("Courier", 12))
     lb2.pack(pady=2)
-    process_labels.append(lb2)
+    process_labels2.append(lb2)
+
+
+
+class GanttEntry:
+    def __init__(self, pid, resource, operation, status, cycle):
+        self.pid = pid
+        self.resource = resource
+        self.operation = operation
+        self.status = status  # "waiting" or "accessed"
+        self.cycle = cycle    # simulated cycle at which this happened
+
+    def __repr__(self):
+        return f"<{self.pid} {self.operation} {self.resource} {self.status} @ cycle {self.cycle}>"
+
+def simulate_action(process, actions, resources, gantt_log):
+    for action in actions:
+        if action.pid != process.pid:
+            continue
+
+        resource = resources.get(action.resource_name)
+        if not resource:
+            print(f"{process.pid}: Recurso {action.resource_name} no encontrado")
+            continue
+
+        print(f"{process.pid} esperando para {action.operation} en {resource.name} en ciclo {action.cycle}")
+        
+        # Agrega estado "WAITING"
+        gantt_log.append(GanttEntry(process.pid, resource.name, action.operation , "WAITING", action.cycle))
+
+        time.sleep(action.cycle * 0.1)
+
+        # Intenta acceder al recurso
+        print(f"{process.pid} intenta {action.operation} en {resource.name}")
+        resource.control.acquire()
+        print(f"{process.pid} ACCEDIÓ a {resource.name} ({action.operation})")
+
+        # Agrega estado "ACCESED" justo después del ciclo
+        gantt_log.append(GanttEntry(process.pid, resource.name, action.operation , "ACCESED", action.cycle))
+
+        time.sleep(0.5)
+
+        print(f"{process.pid} LIBERA {resource.name}")
+        resource.control.release()
+
+
+
+
+def open_simulation_window_for_mutex():
+    win = tk.Toplevel(root)
+    win.title("Simulación Mutex/Semáforo")
+
+    window_width = 800
+    window_height = 300
+    win.geometry(f"{window_width}x{window_height}+100+100")
+
+    tk.Label(win, text=f"Simulación de Acciones sobre Recursos", font=("Arial", 14)).pack(pady=10)
+
+    frame = tk.Frame(win)
+    frame.pack(fill='both', expand=True)
+
+    canvas = Canvas(frame, bg="white", height=200)
+    canvas.pack(side='left', fill='both', expand=True)
+
+    x_scrollbar = Scrollbar(canvas, orient='horizontal', command=canvas.xview)
+    y_scrollbar = Scrollbar(canvas, orient='vertical', command=canvas.yview)
+
+    canvas.configure(xscrollcommand=x_scrollbar.set, yscrollcommand=y_scrollbar.set)
+    canvas.pack(side='left', fill='both', expand=True)
+    x_scrollbar.pack(side='bottom', fill='x')
+    y_scrollbar.pack(side='right', fill='y')
+
+    canvas.configure(scrollregion=(0, 0, 5000, 2000))
+
+    def run_mutex_simulation():
+        canvas.delete("all")
+        canvas.xview_moveto(0)
+        canvas.configure(scrollregion=(0, 0, 0, 0))
+
+        gantt_log = start_simulation_mut_sem()
+        if gantt_log:
+            draw_gantt_from_log_animated(canvas, gantt_log, time_unit=60, delay=500)
+        else:
+            tk.Label(win, text="Error en la simulación", fg="red").pack(pady=5)
+
+    run_mutex_simulation()
+
+    restart_btn = tk.Button(win, text="Reiniciar Simulación", command=run_mutex_simulation)
+    restart_btn.pack(pady=10)
+
+
+def draw_gantt_from_log_animated(canvas, gantt_log, time_unit=60, delay=500):
+    """
+    Animate drawing the Gantt chart one block at a time.
+
+    :param canvas: Tkinter Canvas to draw on.
+    :param gantt_log: List of log entries with pid, cycle, status, resource.
+    :param time_unit: Width of each time block in pixels.
+    :param delay: Delay in milliseconds between drawing each block.
+    """
+    canvas.delete("all")
+
+    pids = sorted(set(entry.pid for entry in gantt_log))
+    pid_y = {pid: 80 + i * 60 for i, pid in enumerate(pids)}
+
+    status_colors = {"WAITING": "orange", "ACCESED": "green"}
+    start_x = 100
+
+    # Draw timeline header once
+    max_cycle = max(entry.cycle for entry in gantt_log) + 1
+    for t in range(max_cycle):
+        x = start_x + t * time_unit
+        canvas.create_text(x + time_unit // 2, 40, text=str(t), font=('Arial', 12, 'bold'))
+        canvas.create_line(x, 60, x, 60 + len(pids) * 60, fill="#ccc")
+
+    # Draw process labels once
+    for pid, y in pid_y.items():
+        canvas.create_text(10, y + 20, text=f"{pid}:", anchor='w', font=('Arial', 12, 'bold'))
+
+    # Animation variables
+    index = 0
+
+    def draw_next_block():
+        nonlocal index
+        if index >= len(gantt_log):
+            return  # Done drawing all blocks
+
+        entry = gantt_log[index]
+        x = start_x + entry.cycle * time_unit
+        y = pid_y[entry.pid]
+        fill = status_colors.get(entry.status.upper(), "gray")
+
+        canvas.create_rectangle(x, y, x + time_unit, y + 40, fill=fill, outline='black')
+        canvas.create_text(x + time_unit // 2, y + 20, text=f"{entry.resource}\n{entry.status}", font=('Arial', 8), fill='white')
+
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.xview_moveto(max(0, (x - 300) / (max_cycle * time_unit)))  # Scroll so current block is visible
+
+        index += 1
+        canvas.after(delay, draw_next_block)
+
+    # Start animation
+    draw_next_block()
 
 
 
@@ -443,19 +611,83 @@ def start_simulation_mut_sem():
 
     text = ""
 
-    # Verifica si los procesos han sido cargados
-    if list_process == []:
-        text= text + "Error: No hay procesos cargados. Por favor, cargue un archivo primero. \n"
-        
-    # Verifica si las acciones han sido cargadas
-    if actions_list == []:
-        text= text+"Error: No hay acciones cargadas. Por favor, cargue el archivo de acciones. \n"
-
-    # Verifica si los recursos han sido cargados
-    if loaded_resources == []:
-        text= text+"Error: No hay recursos cargados. Por favor, cargue el archivo de recursos. \n"
+    # Verificaciones de archivos cargados
+    if not list_process:
+        text += "Error: No hay procesos cargados. Por favor, cargue un archivo primero.\n"
+    if not actions_list:
+        text += "Error: No hay acciones cargadas. Por favor, cargue el archivo de acciones.\n"
+    if not loaded_resources:
+        text += "Error: No hay recursos cargados. Por favor, cargue el archivo de recursos.\n"
 
     error_labelsem.config(text=text)
+
+    if text != "":
+        return None  # Stop simulation on error
+
+    # Convert list of resources to dictionary for easy access
+
+    resources_dict = loaded_resources
+    
+    # List to store all Gantt chart entries
+    gantt_log = []
+
+    threads = []
+
+    for process in list_process:
+        t = threading.Thread(target=simulate_action, args=(process, actions_list, resources_dict, gantt_log))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    print("Simulación completada.")
+
+    # Return the Gantt log to use it for plotting
+    return gantt_log
+
+
+def open_simulation_window_for_mutex():
+    win = tk.Toplevel(root)
+    win.title("Simulación Mutex/Semáforo")
+
+    window_width = 800
+    window_height = 300
+    win.geometry(f"{window_width}x{window_height}+100+100")
+
+    tk.Label(win, text=f"Simulación de Acciones sobre Recursos", font=("Arial", 14)).pack(pady=10)
+
+    frame = tk.Frame(win)
+    frame.pack(fill='both', expand=True)
+
+    canvas = Canvas(frame, bg="white", height=200)
+    canvas.pack(side='left', fill='both', expand=True)
+
+    x_scrollbar = Scrollbar(canvas, orient='horizontal', command=canvas.xview)
+    y_scrollbar = Scrollbar(canvas, orient='vertical', command=canvas.yview)
+
+    canvas.configure(xscrollcommand=x_scrollbar.set, yscrollcommand=y_scrollbar.set)
+    canvas.pack(side='left', fill='both', expand=True)
+    x_scrollbar.pack(side='bottom', fill='x')
+    y_scrollbar.pack(side='right', fill='y')
+
+    canvas.configure(scrollregion=(0, 0, 5000, 2000))
+
+    def run_mutex_simulation():
+        canvas.delete("all")
+        canvas.xview_moveto(0)
+        canvas.configure(scrollregion=(0, 0, 0, 0))
+
+        gantt_log = start_simulation_mut_sem()
+        if gantt_log:
+            draw_gantt_from_log_animated(canvas, gantt_log, time_unit=60, delay=500)
+        else:
+            tk.Label(win, text="Error en la simulación", fg="red").pack(pady=5)
+
+    run_mutex_simulation()
+
+    restart_btn = tk.Button(win, text="Reiniciar Simulación", command=run_mutex_simulation)
+    restart_btn.pack(pady=10)
 
 
 
@@ -478,14 +710,14 @@ action_labels = [
 for lbl in action_labels:
     lbl.pack()
 
-start_button = tk.Button(
+start_buttonsem = tk.Button(
     tab2,
     text="Iniciar Simulación",
     font=("Arial", 12, "bold"),
     bg="#4CAF50", fg="white",
-    command=start_simulation_mut_sem
+    command=open_simulation_window_for_mutex  
 )
-start_button.pack(pady=5)
+start_buttonsem.pack(pady=5)
 
 
 error_labelsem = tk.Label(tab2, text="", fg="red", font=("Arial", 11), bg="white")
