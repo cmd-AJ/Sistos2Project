@@ -101,7 +101,7 @@ def upload_file2():
 
 # Create the main window
 root = tk.Tk()
-root.title("Simple Tkinter Example")
+root.title("Simulador de algoritmos. final")
 
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
@@ -109,7 +109,7 @@ screen_height = root.winfo_screenheight()
 # Set desired margins (e.g., 50 pixels on each edge)
 margin = 70
 window_width = int(screen_width/2) - 2 * margin
-window_height = int(screen_height) - 2 * margin
+window_height = int(screen_height) - int(1.2* margin)
 
 # Position the window centered with margin
 x_pos = 0
@@ -134,7 +134,7 @@ notebook.add(tab2, text="Simulador de Mecanismos de Sincronización")
 
 
 # Add content to tabs
-tk.Label(tab1, text="Algoritmos de Calendarización", font=("Arial", 16)).pack(pady=20)
+tk.Label(tab1, text="Algoritmos de Calendarización",background="white", font=("Arial", 16)).pack(pady=20)
 upload_btn = tk.Button(tab1, text="Cargar Archivo de procesos .txt", command=upload_file)
 upload_btn.pack(pady=10)
 
@@ -296,9 +296,10 @@ def open_simulation_window(algorithm, quantum):
     win = tk.Toplevel(root)
     win.title("Simulación")
 
-    window_width = 800
-    window_height = 300
-    win.geometry(f"{window_width}x{window_height}+100+100")
+    window_width = 900
+    window_height = int(screen_height) -  int(1.2*margin)
+    sep = int(screen_width/2) - 2 * margin
+    win.geometry(f"{window_width}x{window_height}+{sep}+0")
 
     tk.Label(win, text=f"Algoritmo seleccionado: {algorithm}", font=("Arial", 14)).pack(pady=10)
 
@@ -331,18 +332,21 @@ def open_simulation_window(algorithm, quantum):
 
         local_processes = readfilelines("process.txt")  # Reload fresh data
         if algorithm == "FIFO":
-            scheduled = algcalendar.fcfs_scheduling(local_processes)
+            scheduled, timeline = algcalendar.fcfs_scheduling(local_processes)
             avg_wt = calculate_avg_waiting_time(scheduled)
+            scheduled = timeline
         elif algorithm == "SJF":
-            scheduled = algcalendar.sjf_scheduling(local_processes)
+            scheduled, timeline = algcalendar.sjf_scheduling(local_processes)
             avg_wt = calculate_avg_waiting_time(scheduled)
-
+            scheduled = timeline
         elif algorithm == "Priority":
-            scheduled = algcalendar.priority_scheduling(local_processes)
+            scheduled, timeline = algcalendar.priority_scheduling(local_processes)
             avg_wt = calculate_avg_waiting_time(scheduled)
+            scheduled = timeline
         elif algorithm == "Round Robin":
-            scheduled = algcalendar.round_robin_scheduling(local_processes, int(quantum))
+            scheduled, timeline = algcalendar.round_robin_scheduling(local_processes, int(quantum))
             avg_wt = calculate_avg_waiting_time(scheduled)
+            scheduled = timeline
         elif algorithm == "SRT":
             scheduled = algcalendar.srtf(local_processes)
             avg_wt = calculate_avg_waiting_time(scheduled)
@@ -378,7 +382,7 @@ error_label.pack(pady=5)
 
 
 #tab 2 que se encuentra los mecanismos de sincronización
-tk.Label(tab2, text="Mecanismos de Sincronización.", font=("Arial", 16)).pack(pady=20)
+tk.Label(tab2, text="Mecanismos de Sincronización.", background="white" ,font=("Arial", 16)).pack(pady=20)
 
 
 
@@ -438,10 +442,10 @@ sync_mode = tk.StringVar(value="semaphore")  # Default to semaphore
 sync_frame = tk.Frame(tab2)
 sync_frame.pack(pady=5)
 
-sync_label = tk.Label(sync_frame, text="Modo de sincronización:")
+sync_label = tk.Label(sync_frame, text="Modo de sincronización:" )
 sync_label.pack(side=tk.LEFT)
 
-radio_semaphore = tk.Radiobutton(sync_frame, text="Semaphore", variable=sync_mode, value="semaphore")
+radio_semaphore = tk.Radiobutton(sync_frame, text="Semaphore", variable=sync_mode, background="white" ,value="semaphore")
 radio_semaphore.pack(side=tk.LEFT)
 
 radio_mutex = tk.Radiobutton(sync_frame, text="Mutex", variable=sync_mode, value="mutex")
@@ -512,9 +516,10 @@ def open_simulation_window_for_mutex():
     win = tk.Toplevel(root)
     win.title("Simulación Mutex/Semáforo")
 
-    window_width = 800
-    window_height = 300
-    win.geometry(f"{window_width}x{window_height}+100+100")
+    window_width = 1000
+    window_height = int(screen_height) - int(1.2* margin)
+    sep = int(screen_width/2) - 2 * margin
+    win.geometry(f"{window_width}x{window_height}+{sep}+0")
 
     tk.Label(win, text=f"Simulación de Acciones sobre Recursos", font=("Arial", 14)).pack(pady=10)
 
@@ -651,9 +656,10 @@ def open_simulation_window_for_mutex():
     win = tk.Toplevel(root)
     win.title("Simulación Mutex/Semáforo")
 
-    window_width = 800
-    window_height = 300
-    win.geometry(f"{window_width}x{window_height}+100+100")
+    window_width = 1000
+    window_height = window_height = int(screen_height) - margin
+    sep = int(screen_width/2) - 2 * margin
+    win.geometry(f"{window_width}x{window_height}+{sep}+0")
 
     tk.Label(win, text=f"Simulación de Acciones sobre Recursos", font=("Arial", 14)).pack(pady=10)
 
