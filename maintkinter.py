@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, Canvas, Scrollbar
+from tkinter import messagebox
 import os
 import random
 import time
@@ -71,7 +72,7 @@ def upload_file():
                 fg="black"
             )
 
-        
+
 
 def upload_file2():
     global list_process
@@ -437,7 +438,7 @@ def upload_actions_file():
 
 
 
-sync_mode = tk.StringVar(value="semaphore")  # Default to semaphore
+sync_mode = tk.StringVar(value="semaphore")  
 
 sync_frame = tk.Frame(tab2)
 sync_frame.pack(pady=5)
@@ -548,7 +549,7 @@ def open_simulation_window_for_mutex():
         if gantt_log:
             draw_gantt_from_log_animated(canvas, gantt_log, time_unit=60, delay=500)
         else:
-            tk.Label(win, text="Error en la simulación", fg="red").pack(pady=5)
+            messagebox.showerror("Error", "Something went wrong!")        
 
     run_mutex_simulation()
 
@@ -598,7 +599,7 @@ def draw_gantt_from_log_animated(canvas, gantt_log, time_unit=60, delay=500):
         fill = status_colors.get(entry.status.upper(), "gray")
 
         canvas.create_rectangle(x, y, x + time_unit, y + 40, fill=fill, outline='black')
-        canvas.create_text(x + time_unit // 2, y + 20, text=f"{entry.resource}\n{entry.status}", font=('Arial', 8), fill='white')
+        canvas.create_text(x + time_unit // 2, y + 20, text=f"{entry.resource}, {entry.operation}\n{entry.status}", font=('Arial', 8), fill='white')
 
         canvas.configure(scrollregion=canvas.bbox("all"))
         canvas.xview_moveto(max(0, (x - 300) / (max_cycle * time_unit)))  # Scroll so current block is visible

@@ -1,4 +1,5 @@
 import threading
+from tkinter import messagebox
 
 
 class Resource:
@@ -64,7 +65,7 @@ def load_actions(filename, process_list, resource_list):
                 pid, action_type, resource_name, cycle = [p.strip() for p in parts]
 
                 if not pid_exists(process_list, pid):
-                    print(f"ERROR: PID '{pid}' no existe en la lista de procesos.")
+                    messagebox.showerror("ERROR: PID '{pid}' no existe en la lista de procesos.")        
                     continue
 
                 if not resource_exist(resource_list, resource_name):
